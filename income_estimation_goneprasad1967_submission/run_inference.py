@@ -40,7 +40,6 @@ def predict(df: pd.DataFrame) -> pd.DataFrame:
         # Check if models exist
         if not os.path.exists('models/saved/feature_engineer.pkl'):
             raise FileNotFoundError("Feature engineer model not found. Please train the model first.")
-        
         if not os.path.exists('models/saved/ensemble_model.pkl'):
             raise FileNotFoundError("Ensemble model not found. Please train the model first.")
         
@@ -69,32 +68,38 @@ def predict(df: pd.DataFrame) -> pd.DataFrame:
         predictions = np.maximum(predictions, 0)
         predictions = np.minimum(predictions, 1000000)  # Cap at 10 lakhs
         
-        # Create result dataframe
+        # Create result dataframe with only unique_id and predicted_income
         result_df = pd.DataFrame({
-            'id': ids,
+            'unique_id': ids,
             'predicted_income': predictions
+            # NOTE: Formerly, prediction_category was added as below (commented out)
+            # 'prediction_category': pd.cut(
+            #     predictions,
+            #     bins=[0, 25000, 50000, 100000, np.inf],
+            #     labels=['Low', 'Medium', 'High', 'Very High']
+            # )
         })
         
-        # Add prediction confidence indicators
-        result_df['prediction_category'] = pd.cut(
-            predictions, 
-            bins=[0, 25000, 50000, 100000, np.inf],
-            labels=['Low', 'Medium', 'High', 'Very High']
-        )
-        
         logger.info(f"Predictions completed successfully. Generated {len(result_df)} predictions.")
-        
         return result_df
         
     except Exception as e:
         logger.error(f"Error in prediction: {str(e)}")
-        # Return dummy predictions with error flag
+        # Return dummy predictions with error flag for debugging
         result_df = pd.DataFrame({
-            'id': df['unique_id'] if 'unique_id' in df.columns else range(len(df)),
+            'unique_id': df['unique_id'] if 'unique_id' in df.columns else range(len(df)),
             'predicted_income': [50000] * len(df),  # Default prediction
-            'prediction_category': ['Medium'] * len(df),
-            'error_flag': [True] * len(df)
+            # NOTE: Formerly, prediction_category and error_flag were added as below (commented out)
+            # 'prediction_category': ['Medium'] * len(df),
+            # 'error_flag': [True] * len(df)
         })
+        # NOTE: If you want to keep the extra columns in error cases, uncomment the above and below
+        # result_df = pd.DataFrame({
+        #     'unique_id': df['unique_id'] if 'unique_id' in df.columns else range(len(df)),
+        #     'predicted_income': [50000] * len(df),
+        #     'prediction_category': ['Medium'] * len(df),
+        #     'error_flag': [True] * len(df)
+        # })
         return result_df
 
 def main():
@@ -115,18 +120,17 @@ def main():
         # Create output directory
         os.makedirs('output', exist_ok=True)
         
-        # Save results
-        output_path = 'output/predictions_enhanced.csv'
-        result_df.to_csv(output_path, index=False)
-        
+        # Save results (only unique_id and predicted_income columns)
+        output_path = 'output/output_Hackathon_bureau_data_400.csv'
+        result_df[['unique_id', 'predicted_income']].to_csv(output_path, index=False)
         logger.info(f"Predictions saved to {output_path}")
         logger.info(f"Results shape: {result_df.shape}")
         
-        # Display sample predictions
-        print("\nSample predictions:")
-        print(result_df.head(10))
+        # Display sample predictions (only unique_id and predicted_income columns)
+        print("\nSample predictions (unique_id and predicted_income only):")
+        print(result_df[['unique_id', 'predicted_income']].head(10))
         
-        # Basic statistics
+        # Print basic statistics for predicted_income
         if not result_df['predicted_income'].isna().all():
             stats = {
                 'count': len(result_df),
