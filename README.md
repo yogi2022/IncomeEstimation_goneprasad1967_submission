@@ -6,23 +6,26 @@ In the vibrant financial corridors of India's emerging digital economy, a remark
 This production-ready solution enables applications ranging from credit risk assessment and loan underwriting to market segmentation and regulatory compliance, while maintaining the modularity, configurability, and sub-second inference capabilities required for seamless integration into existing financial technology infrastructures serving millions of users across India's diverse demographic landscape from urban millennials to rural entrepreneurs in emerging fintech hubs.
 
 ## Overview
-Advanced income estimation model leveraging sophisticated ensemble methods, comprehensive feature engineering, and Bayesian hyperparameter optimization. The solution combines LightGBM, XGBoost, CatBoost, Neural Networks, and Random Forest with optimal weighted ensemble approach for superior predictive performance across diverse demographic segments.
+Advanced income estimation model leveraging sophisticated ensemble methods, comprehensive feature engineering, and Bayesian hyperparameter optimization. The solution combines LightGBM, XGBoost, CatBoost, Neural Networks, and Random Forest with optimal weighted ensemble approach for superior predictive performance across diverse demographic segments
 
 ## Key Features
 - **Advanced Feature Engineering**: 15+ derived financial ratios, interaction terms, and aggregated statistics
 - **Ensemble Learning**: Bayesian-optimized weighted combination of 5 algorithms
 - **Hyperparameter Optimization**: Optuna-based parameter tuning with 200+ trials per model
 - **Cross-Validation**: Stratified 5-fold CV with early stopping (100 rounds)
+- **Multi-Format Data Support**: Automatic detection and handling of different data formats
 - **Scalable Architecture**: Modular, scalable, and fully configurable design
 
 ## Key Innovation Features
-- **Bayesian Ensemble Weighting**: Uses Optuna optimization to find optimal model weights through 200 trials
+- **Intelligent Data Format Detection**: Automatically detects and handles both training format (unique_id, feature names) and test format (id, var_X) data
+- **Dynamic Column Mapping**: Smart mapping system converts var_0 through var_75 to corresponding financial feature names
+-  **Ensemble Weighting**: Uses Optuna optimization to find optimal model weights through 200 trials
 - **Sophisticated Feature Engineering**: Creates 15+ derived features including financial ratios, credit behavior patterns, and interaction terms
 - **Multi-Level Categorical Encoding**: Target encoding with smoothing (factor=10), frequency encoding, and label encoding for optimal categorical feature representation
-- **Stratified Cross-Validation**: Custom stratified K-fold for regression with proper validation splits
-- **Advanced Outlier Handling**: Isolation Forest-based outlier detection with quantile-based capping (1st-99th percentile)
-- **Neural Network Integration**: Deep MLP architecture (512→256→128→64) with RobustScaler preprocessing
-- This solution achieves superior performance across all evaluation metrics while maintaining scalability and real-world deployment viability. The ensemble approach with optimized weights provides robust predictions across different income ranges and demographic segments.
+- **Robust Missing Data Handling**: Synthetic feature generation for missing critical columns like credit_score
+- **Production-Ready Inference**: Handles unknown data formats gracefully with comprehensive error recovery
+
+This solution achieves superior performance across all evaluation metrics while maintaining scalability and real-world deployment viability. The ensemble approach with optimized weights provides robust predictions across different income ranges and demographic segments.
 
 ## Setup Instructions
 
@@ -43,6 +46,14 @@ Place your data file in the `data/` folder:
 - Training: `data/Hackathon_bureau_data_400.csv`
 - For larger dataset: `data/Hackathon_bureau_data_50000.csv`
 
+#### Training Data (Named Features Format):
+- Place in data/ folder: data/Hackathon_bureau_data_400.csv
+- Columns: unique_id, balance_1, balance_2, credit_limit_1, etc.
+
+#### Test Data (Variable Format):
+- Place in project root: bureau_data_10000_without_target.csv
+- Columns: id, var_0, var_1, var_2, etc.
+
 ### 3. Configuration
 Update config.json if needed for model parameters. Default configuration includes:
 - **Optuna Optimization**: 100 trials, 3600-second timeout
@@ -52,6 +63,7 @@ Update config.json if needed for model parameters. Default configuration include
 ## Training the Model
 
 python main.py
+
 
 This will:
 - Load and validate data (89 features → processed features)
@@ -67,13 +79,58 @@ For evaluation (required format):
 
 python run_inference.py
 
+#### Smart Format Detection:
+
+- Training Format: Automatically detected when columns include unique_id, balance_1, etc.
+- Test Format: Automatically detected when columns include id, var_0, var_1, etc.
+- Column Mapping: Intelligent mapping system converts test format to training format seamlessly
+
 The predict() function specifications:
 - **Input**: DataFrame with same structure as training data (89 columns)
 - **Output**: DataFrame with columns ['unique_id', 'predicted_income']
 - **Validation**: Input validation, error handling, and prediction capping (0 to ₹10,00,000)
 - **Performance**: Optimized inference pipeline with batch processing capabilities
 
+#### Format-Specific Handling
+#### For Training Format Data:
+
+python
+# Direct processing - no transformation needed
+df = pd.read_csv('data/Hackathon_bureau_data_400.csv')
+predictions = predict(df)
+For Test Format Data:
+
+python
+# Automatic transformation: var_X → feature_names
+df = pd.read_csv('bureau_data_10000_without_target.csv')
+predictions = predict(df)  # Handles transformation automatically
+
+
 ## Model Architecture
+
+Enhanced Data Processing Pipeline
+1. Format Detection Engine:
+- Automatic identification of data format based on column patterns
+- Support for both named features and variable-indexed formats
+- Graceful handling of mixed or unknown formats
+
+#### Dynamic Column Mapping:
+
+#### Intelligent mapping system
+python
+column_mapping = {
+    "id": "unique_id",
+    "var_0": "balance_1",
+    "var_1": "balance_2", 
+    "var_2": "credit_limit_1",
+    # ... complete mapping for all 76 variables
+}
+
+3. Synthetic Feature Generation:
+
+- Credit Score Synthesis: Age-based scoring algorithm for missing credit_score
+- Default Value Assignment: Intelligent defaults for missing categorical features
+- Missing Column Recovery: Automatic addition of missing required features
 
 ### Feature Engineering Pipeline
 
@@ -101,11 +158,11 @@ The predict() function specifications:
 - **Label Encoding**: Low cardinality features (≤10 unique values)
 
 ### Ensemble Models
-- **LightGBM**: Gradient boosting with force_col_wise=True, optimized leaf structure (10-300 leaves)
-- **XGBoost**: Tree-based regression with advanced regularization (alpha, lambda tuning)
-- **CatBoost**: Handles categorical features with Bayesian bootstrap and automatic depth tuning (4-10)
-- **Neural Network**: Deep MLP (512→256→128→64) with ReLU activation, Adam optimizer, L2 regularization (α=0.01)
-- **Random Forest**: 200 estimators with sqrt feature sampling and optimized tree depth (max_depth=15)
+- **XGBoost (52.03% weight)** - Primary contributor due to superior gradient boosting with regularization
+- **LightGBM (34.64% weight)** - Memory-efficient gradient boosting with categorical feature handling
+- **CatBoost (12.51% weight)** - Specialized categorical boosting with minimal preprocessing
+- **Neural Network (0.81% weight)** - Deep MLP (512→256→128→64) for non-linear pattern capture
+- **Random Forest (0.007% weight)** - Ensemble diversity and robustness contribution
 
 ### Advanced Optimization
 - **Hyperparameter Tuning**: Optuna Bayesian optimization (30 trials per model)
@@ -136,6 +193,33 @@ The model provides comprehensive evaluation across multiple dimensions:
 - **Prediction Distribution**: Mean, median, standard deviation, and range analysis
 - **Model Stability**: Performance consistency across different income segments
 
+#### Multi-Format Data Handling
+
+#### Automatic Format Detection
+
+python
+def detect_data_format(df):
+    """Automatically detect data format"""
+    if 'unique_id' in df.columns and 'balance_1' in df.columns:
+        return "training_format"
+    elif 'id' in df.columns and 'var_0' in df.columns:
+        return "test_format"
+    else:
+        return "unknown_format"
+
+#### Column Mapping System
+- The system includes comprehensive mapping for all 76 variables:
+- Financial Features: var_0 → balance_1, var_2 → credit_limit_1
+- Loan Features: var_6 → loan_amt_1, var_13 → loan_amt_large_tenure
+- Behavioral Features: var_15 → total_inquiries_1, var_37 → repayment_1
+- Demographic Features: Direct mapping for age, gender, city, state
+
+#### Robust Error Handling
+- Missing Column Recovery: Automatic addition of missing features with appropriate defaults
+- Format Validation: Comprehensive input validation for both data formats
+- Graceful Degradation: Reasonable fallback predictions when processing fails
+- Synthetic Data Generation: Creates missing critical features like credit_score
+
 ## Environment Variables
 
 Create a `.env` file for any API keys or sensitive configuration:
@@ -163,7 +247,7 @@ DEBUG=False
 
 ## File Structure
 
-- income_estimation_goneprasad1967_submission/
+income_estimation_goneprasad1967_submission/
 - ├── main.py                      # Training pipeline (167 lines)
 - ├── run_inference.py             # REQUIRED inference pipeline (125 lines)
 - ├── requirements.txt             # Dependencies (14 packages)
@@ -172,15 +256,12 @@ DEBUG=False
 - ├── data/
 - │   └── Hackathon_bureau_data_400.csv  # Sample data (319KB, 400x89)
 - ├── output/
-- │   └── output_Hackathon_bureau_data_400.csv, training_results.json   # Sample predictions
-- ├── plots/
-- │   └── evaluation_plot.png      # Model evaluation visualization
-- ├── models/
-- │   ├── feature_engineering.py  # Feature pipeline (281 lines)
-- │   ├── model_ensemble.py        # Ensemble implementation (559 lines)
-- │   └── utils.py                 # Evaluation utilities (173 lines)
+- │   └── output_Hackathon_bureau_data_400.csv, image_output.png, training_results.json   # Sample predictions, output_bureau_data_10000_predictions.csv # Test format predictions
+- ├── models -> feature_engineering.py       # Feature pipeline (281 lines)
+- ├── models -> model_ensemble.py            # Ensemble implementation (559 lines)
+- ├── models -> utils.py                     # Evaluation utilities (173 lines)
 - ├── README.md                    # This file
-- └── .env                         # Environment variables
+- └── .env                         # Environment variables 
 
 ## Configuration Parameters
 
@@ -190,7 +271,7 @@ DEBUG=False
 - **CatBoost**: 8 parameters including depth (8), bootstrap_type (Bayesian), l2_leaf_reg (3)
 
 2. Optimization Settings
-- **Optuna Trials**: 200 trials for ensemble weights, 30 trials per model
+- **Optuna Trials**: 100 per study with MedianPruner
 - **Timeout**: 3600 seconds maximum per optimization
 - **Study Direction**: Minimize RMSE objective
 
@@ -265,17 +346,15 @@ results = predict(test_df)
 ## Algorithm Selection & Architecture
 
 #### Multi-Model Ensemble Approach
-
 Our solution employs a sophisticated Bayesian-optimized weighted ensemble combining five complementary algorithms. The algorithm selection was driven by the need to capture different aspects of the income prediction problem:
 
-1. **XGBoost (52.03% weight)** - Primary contributor due to its superior handling of mixed-type features and robust gradient boosting capabilities. The high weight (0.656) indicates its exceptional performance on this dataset's feature distribution.
-2. **LightGBM (34.64% weight)** - Selected for its memory efficiency and ability to handle categorical features natively. Provides complementary predictions to XGBoost with faster training times.
-3. **CatBoost (12.51% weight)** - Specialized for categorical feature handling without extensive preprocessing. Its lower weight suggests overlap with other tree-based models but still contributes to ensemble diversity.
-4. **Neural Network (0.81% weight)** - Deep MLP architecture (512→256→128→64) with ReLU activation provides non-linear pattern recognition capabilities, though minimal weight indicates limited incremental value.
-5. **Random Forest (0.007% weight)** - Included for ensemble diversity and robustness, though its minimal contribution suggests other algorithms captured most relevant patterns
+1. **XGBoost (65.6% weight)** - Primary contributor due to its superior handling of mixed-type features and robust gradient boosting capabilities. The high weight (0.656) indicates its exceptional performance on this dataset's feature distribution.
+2. **LightGBM (28.8% weight)** - Selected for its memory efficiency and ability to handle categorical features natively. Provides complementary predictions to XGBoost with faster training times.
+3. **CatBoost (5.5% weight)** - Specialized for categorical feature handling without extensive preprocessing. Its lower weight suggests overlap with other tree-based models but still contributes to ensemble diversity.
+4. **Neural Network (0.06% weight)** - Deep MLP architecture (512→256→128→64) with ReLU activation provides non-linear pattern recognition capabilities, though minimal weight indicates limited incremental value.
+5. **Random Forest (0.03% weight)** - Included for ensemble diversity and robustness, though its minimal contribution suggests other algorithms captured most relevant patterns
 
 #### Feature Engineering Strategy
-
 Our advanced feature engineering pipeline transforms the original 89 features into 150+ engineered features through:
 
 1. Financial Ratio Features (6 core ratios):
@@ -299,41 +378,41 @@ Our advanced feature engineering pipeline transforms the original 89 features in
 
 1. Primary Regression Metrics (R², RMSE, MAE)
 #### Test Set Performance (Generalization Capability):
-- **R² Score: 0.6777** - Explains 67.77% of income variance, indicating strong predictive power
-- **RMSE: ₹11,608** - Average prediction error of ~₹11.6k, reasonable for income prediction
-- **MAE: ₹7,427** - Median absolute error of ₹7.4k, showing robust central tendency performance
+- **R² Score: 0.6766** - Explains 67.66% of income variance, indicating strong predictive power
+- **RMSE: ₹11,628** - Average prediction error of ~₹11.6k, reasonable for income prediction
+- **MAE: ₹7,421** - Median absolute error of ₹7.4k, showing robust central tendency performance
 
 2. Model Stability Analysis:
-- **R² difference (train-test)**: 0.0226 (2.26%) - Excellent generalization with minimal overfitting
-- **RMSE ratio (test/train)**: 0.6202 - Counter-intuitive lower test error suggests effective regularization
-- **Cross-validation R²**: 0.6614 - Consistent with test performance, confirming model reliability
+- **R² difference (train-test)**: 0.0331 (3.31%) - Excellent generalization with minimal overfitting
+- **RMSE ratio (test/train)**: 0.6313 - Counter-intuitive lower test error suggests effective regularization
+- **Cross-validation R²**: 0.6541 - Consistent with test performance, confirming model reliability
 
 3. Population Coverage within 25% Deviation
 Test Set Coverage Performance:
-- **25% deviation coverage: 66.25%** - 2 out of 3 predictions within 25% relative error
-- **10% deviation coverage: 31.25%** - Nearly 1 out of 3 predictions within 10% relative error
-- **50% deviation coverage: 85.0%** - Over 8 out of 10 predictions within 50% relative error
+- **25% deviation coverage**: 70.0% - 7 out of 10 predictions within 25% relative error
+- **10% deviation coverage**: 30.0% - 3 out of 10 predictions within 10% relative error
+- **50% deviation coverage**: 83.75% - Over 8 out of 10 predictions within 50% relative error
 
 4. Robustness Across Income Segments:
-- **MAPE: 30.70%** - Mean absolute percentage error indicates consistent relative performance
-- **Median APE: 16.45%** - Lower median suggests good performance for typical cases with some outlier impact
-- The 66.25% coverage within 25% deviation demonstrates strong consistency across different income levels
+- **MAPE**: 30.86% - Mean absolute percentage error indicates consistent relative performance
+- **Median APE**: 15.31% - Lower median suggests good performance for typical cases with some outlier impact
+- The 70% coverage within 25% deviation demonstrates strong consistency across different income levels
 
 5. Population Coverage within Absolute Difference of ₹5K
 Absolute Error Performance:
-- **₹5K coverage: 58.75%** - More than half of predictions within ±₹5,000 absolute difference
-- **₹10K coverage: 76.25%** - Three-quarters of predictions within ±₹10,000 absolute difference
-- **Bias: +₹1,085 (3.61%)** - Slight overestimation tendency, well within acceptable range
+- **₹5K coverage**: 57.5% - More than half of predictions within ±₹5,000 absolute difference
+- **₹10K coverage**: 75.0% - Three-quarters of predictions within ±₹10,000 absolute difference
+- **Bias**: +₹1,009 (3.36%) - Slight overestimation tendency, well within acceptable range
 
 ### Practical Implications:
-- For financial planning applications, 58.75% accuracy within ₹5K provides actionable insights
-- The 76.25% coverage within ₹10K makes the model suitable for broad income categorization
-- Low bias percentage (3.61%) ensures systematic accuracy without significant directional errors
+- For financial planning applications, 57.5% accuracy within ₹5K provides actionable insights
+- The 75% coverage within ₹10K makes the model suitable for broad income categorization
+- Low bias percentage (3.36%) ensures systematic accuracy without significant directional errors
 
 6. System Performance & Latency
 #### Training Efficiency:
 - **Bayesian hyperparameter optimization**: 200 trials for ensemble weights, 30 trials per model
-- **Total training time**: ~15 minutes for 400 samples (scales linearly)
+- **Total training time**: ~45 minutes for 400 samples (scales linearly)
 - **Memory usage**: Optimized for production deployment with efficient sparse matrix handling
 
 #### Inference Performance:
@@ -371,31 +450,31 @@ Absolute Error Performance:
 #### Stratified K-Fold Implementation:
 - 5-fold stratified cross-validation with income quintile-based stratification
 - Early stopping (100 rounds) prevents overfitting across all gradient boosting models
-- **Consistent performance across folds: CV R² (0.6614)** aligns with test R² (0.6777)
+- **Consistent performance across folds**: CV R² (0.6541) aligns with test R² (0.6766
 
 ## Overfitting Analysis
 #### Generalization Metrics:
-- **Train R²: 0.7003** vs **Test R²: 0.6777** (difference: 2.26%)
+- **Train R²**: 0.7097 vs Test R²: 0.6766 (difference: 3.31%)
 - The minimal gap indicates excellent generalization capability
 - RMSE improvement on test set suggests effective regularization strategies
 
 #### Prediction Stability
 #### Distribution Analysis:
-- **Mean prediction: ₹35,113** (inference) - Reasonable income distribution
-- **Median prediction: ₹27,028** - Shows appropriate central tendency
-- **Standard deviation: ₹21,986** - Healthy prediction variance
-- **Prediction range: ₹14K - ₹106K** - Appropriate for diverse income segments
+- **Mean prediction**: ₹31,041 (test) vs ₹36,002 (train)
+- **Standard deviation**: ₹17,613 (test) vs ₹23,153 (train)
+- Consistent prediction ranges across different data splits
+- Low bias variance indicates stable prediction behavior
 
 ## Real-World Application Scenarios
 #### Financial Services Integration
 #### Credit Assessment Enhancement:
-- 66.25% accuracy within 25% deviation supports loan underwriting decisions
+- 70% accuracy within 25% deviation supports loan underwriting decisions
 - ₹5K absolute accuracy enables micro-finance and personal loan evaluation
 - Real-time inference capability (<100ms) suitable for online application processing
 
 ## Business Intelligence Applications
 #### Market Segmentation:
-- Income predictions suitable for customer segmentation and targeting
+- Four-tier income categorization (Low, Medium, High, Very High)
 - Prediction confidence indicators for risk assessment
 - Batch processing capability for large-scale customer analysis
 
@@ -406,45 +485,7 @@ Absolute Error Performance:
 - Bias monitoring and fairness assessment capabilities
 - Performance tracking across demographic segments
 
-#### Model Evaluation Plot (plots/evaluation_plot.png)
-
-This figure provides a comprehensive visual assessment of the income estimation model's regression performance on the test set:
-
-#### Top Left: Predictions vs Actual (R² = 0.678)
-- Each point represents a test sample, with its actual income (x-axis) and predicted income (y-axis)
-- The red dashed line is the ideal y = x line; points close to this line indicate accurate predictions
-- An R² of 0.678 means the model explains approximately 68% of the variance in incomes
-
-#### Top Right: Residuals vs Predicted
-- Residuals (prediction errors) are plotted against predicted values
-- The red dashed line at zero indicates perfect prediction
-- The residuals are centered around zero, with no strong systematic bias, but some outliers are visible
-
-#### Bottom Left: Distribution of Residuals
-- Histogram of residuals (predicted - actual)
-- Most errors are clustered near zero, with a few large positive and negative outliers
-- The red dashed line marks zero error
-
-#### Bottom Right: Distribution of Absolute Percentage Errors
-- Histogram of absolute percentage errors (APE)
-- The red dashed line marks the 25% error threshold
-- The majority of predictions fall within 25% error, indicating strong practical accuracy
-
-#### Summary
-- The model achieves strong generalization, with most predictions closely matching actual values and 66% of predictions within 25% relative error
-
-- Error distributions are well-centered and show no major bias, supporting the model's reliability for real-world financial applications
-
-#### Conclusion
-This solution delivers a robust, production-ready income estimation pipeline that achieves strong and reliable performance across all key evaluation metrics. The architecture combines advanced feature engineering, a Bayesian-optimized ensemble of state-of-the-art algorithms (XGBoost, LightGBM, CatBoost, Neural Networks, and Random Forest), and rigorous cross-validation to ensure both accuracy and generalization.
-
-The model consistently explains over 67% of income variance (R² ≈ 0.68) on unseen data, with the majority of predictions falling within 25% of actual values and low absolute error for most cases. Residual and error analyses confirm stable, unbiased predictions with minimal overfitting.
-
-Designed for real-world financial applications, the pipeline incorporates comprehensive input validation, scalable batch inference, and modular configuration for seamless deployment. This ensures reliable, actionable income predictions suitable for credit risk assessment, financial planning, and large-scale analytics.
-
-Thank you!
-
-#### goneprasad1967 and team!
+This technical architecture delivers production-ready income estimation with strong performance across all key evaluation criteria, combining algorithmic sophistication with practical deployment considerations for real-world financial applications.
 
 ## Contact
 goneprasad1967@gmail.com
